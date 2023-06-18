@@ -1,0 +1,65 @@
+code:-
+# Import required libraries
+import RPi.GPIO as GPIO
+import time
+import requests
+
+# Set GPIO mode and pins
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+GPIO.setup(17, GPIO.IN)  # Color sensor input pin
+GPIO.setup(18, GPIO.OUT)  # Sorting mechanism output pin
+
+# Define color thresholds (values may vary based on your color sensor)
+RED_THRESHOLD = (100, 150, 50)  # RGB values for red color
+GREEN_THRESHOLD = (50, 150, 50)  # RGB values for green color
+BLUE_THRESHOLD = (50, 100, 150)  # RGB values for blue color
+
+# Define API endpoint to send color data
+API_ENDPOINT = "http://your-api-endpoint.com/color-data"
+
+# Main loop
+while True:
+    # Read RGB values from color sensor
+    red_value = GPIO.input(17)
+    green_value = GPIO.input(17)
+    blue_value = GPIO.input(17)
+
+    # Compare RGB values with color thresholds
+    if red_value > RED_THRESHOLD[0] and green_value < RED_THRESHOLD[1] and blue_value < RED_THRESHOLD[2]:
+        # Red color detected
+        GPIO.output(18, GPIO.HIGH)  # Activate sorting mechanism
+        time.sleep(1)  # Wait for sorting process to complete
+        GPIO.output(18, GPIO.LOW)  # Deactivate sorting mechanism
+        color = "Red"
+    elif red_value < GREEN_THRESHOLD[0] and green_value > GREEN_THRESHOLD[1] and blue_value < GREEN_THRESHOLD[2]:
+        # Green color detected
+        GPIO.output(18, GPIO.HIGH)  # Activate sorting mechanism
+        time.sleep(1)  # Wait for sorting process to complete
+        GPIO.output(18, GPIO.LOW)  # Deactivate sorting mechanism
+        color = "Green"
+    elif red_value < BLUE_THRESHOLD[0] and green_value < BLUE_THRESHOLD[1] and blue_value > BLUE_THRESHOLD[2]:
+        # Blue color detected
+        GPIO.output(18, GPIO.HIGH)  # Activate sorting mechanism
+        time.sleep(1)  # Wait for sorting process to complete
+        GPIO.output(18, GPIO.LOW)  # Deactivate sorting mechanism
+        color = "Blue"
+    else:
+        color = "Unknown"
+
+    # Send color data to API endpoint
+    payload = {"color": color}
+    try:
+        response = requests.post(API_ENDPOINT, json=payload)
+        if response.status_code == 200:
+            print("Color data sent successfully.")
+        else:
+            print("Failed to send color data. Status Code:", response.status_code)
+    except requests.exceptions.RequestException as e:
+        print("Error occurred while sending color data:", str(e))
+
+    # Delay between color detections
+    time.sleep(0.1)
+
+# Clean up GPIO pins
+GPIO.cleanup()
